@@ -1,13 +1,11 @@
-import Time from "./Time";
-import Counter from "./features/counter/Counter";
+import AddPostForm from "./features/posts/AddPostForm";
+import PostsList from "./features/posts/PostsList";
 
 function App() {
   return (
     <main className="App">
-      {/* <Counter /> */}
-      <div>
-        <Time />
-      </div>
+      <AddPostForm />
+      <PostsList />
     </main>
   );
 }
