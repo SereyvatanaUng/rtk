@@ -1,12 +1,17 @@
-import { useDispatch, useSelector } from "react-redux";
-import { useNavigate, useParams } from "react-router-dom";
-import { selectPostById, updatePost, deletePost } from "./postsSlice";
-import { selectAllUsers } from "../users/usersSlice";
 import { useState } from "react";
+import { useSelector } from "react-redux";
+import { selectPostById } from "./postsSlice";
+import { useParams, useNavigate } from "react-router-dom";
 
-function EditPostForm() {
+import { selectAllUsers } from "../users/usersSlice";
+import { useUpdatePostMutation, useDeletePostMutation } from "./postsSlice";
+
+const EditPostForm = () => {
   const { postId } = useParams();
   const navigate = useNavigate();
+
+  const [updatePost, { isLoading }] = useUpdatePostMutation();
+  const [deletePost] = useDeletePostMutation();
 
   const post = useSelector((state) => selectPostById(state, Number(postId)));
   const users = useSelector(selectAllUsers);
@@ -14,14 +19,11 @@ function EditPostForm() {
   const [title, setTitle] = useState(post?.title);
   const [content, setContent] = useState(post?.body);
   const [userId, setUserId] = useState(post?.userId);
-  const [requestStatus, setRequestStatus] = useState("idle");
-
-  const dispatch = useDispatch();
 
   if (!post) {
     return (
       <section>
-        <h2>Post not found !</h2>
+        <h2>Post not found!</h2>
       </section>
     );
   }
@@ -30,22 +32,17 @@ function EditPostForm() {
   const onContentChanged = (e) => setContent(e.target.value);
   const onAuthorChanged = (e) => setUserId(Number(e.target.value));
 
-  const canSave =
-    [title, content, userId].every(Boolean) && requestStatus === "idle";
+  const canSave = [title, content, userId].every(Boolean) && !isLoading;
 
-  const onSavePostClicked = () => {
+  const onSavePostClicked = async () => {
     if (canSave) {
       try {
-        setRequestStatus("pending");
-        dispatch(
-          updatePost({
-            id: post.id,
-            title,
-            body: content,
-            userId,
-            reactions: post.reactions,
-          })
-        ).unwrap();
+        await updatePost({
+          id: post.id,
+          title,
+          body: content,
+          userId,
+        }).unwrap();
 
         setTitle("");
         setContent("");
@@ -53,8 +50,6 @@ function EditPostForm() {
         navigate(`/post/${postId}`);
       } catch (err) {
         console.error("Failed to save the post", err);
-      } finally {
-        setRequestStatus("idle");
       }
     }
   };
@@ -65,10 +60,9 @@ function EditPostForm() {
     </option>
   ));
 
-  const onDeletePostClicked = () => {
+  const onDeletePostClicked = async () => {
     try {
-      setRequestStatus("pending");
-      dispatch(deletePost({ id: post.id })).unwrap();
+      await deletePost({ id: post.id }).unwrap();
 
       setTitle("");
       setContent("");
@@ -76,8 +70,6 @@ function EditPostForm() {
       navigate("/");
     } catch (err) {
       console.error("Failed to delete the post", err);
-    } finally {
-      setRequestStatus("idle");
     }
   };
 
@@ -94,11 +86,7 @@ function EditPostForm() {
           onChange={onTitleChanged}
         />
         <label htmlFor="postAuthor">Author:</label>
-        <select
-          id="postAuthor"
-          defaultValue={userId}
-          onChange={onAuthorChanged}
-        >
+        <select id="postAuthor" value={userId} onChange={onAuthorChanged}>
           <option value=""></option>
           {usersOptions}
         </select>
@@ -108,7 +96,7 @@ function EditPostForm() {
           name="postContent"
           value={content}
           onChange={onContentChanged}
-        ></textarea>
+        />
         <button type="button" onClick={onSavePostClicked} disabled={!canSave}>
           Save Post
         </button>
@@ -122,6 +110,6 @@ function EditPostForm() {
       </form>
     </section>
   );
-}
+};
 
 export default EditPostForm;
